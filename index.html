@@ -172,67 +172,111 @@
     position: relative;
     user-select: none;
     margin-bottom: 18px;
+    /* prevent any text selection during drag */
+    -webkit-user-select: none;
+    touch-action: none;
+  }
+
+  /* The SVG sits on top, pointer-events none so tiles still get mousedown */
+  .path-svg {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    pointer-events: none;
+    z-index: 10;
+    overflow: visible;
+  }
+
+  .path-line {
+    stroke: rgba(160, 126, 245, 0.7);
+    stroke-width: 5;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    fill: none;
+    filter: drop-shadow(0 0 6px rgba(160,126,245,0.6));
+  }
+
+  .live-line {
+    stroke: rgba(160, 126, 245, 0.35);
+    stroke-width: 3;
+    stroke-linecap: round;
+    stroke-dasharray: 6 4;
+    fill: none;
   }
 
   .grid {
     display: grid;
-    grid-template-columns: repeat(4, 80px);
-    grid-template-rows: repeat(4, 80px);
-    gap: 6px;
+    grid-template-columns: repeat(4, 90px);
+    grid-template-rows: repeat(4, 90px);
+    gap: 12px;
     position: relative;
   }
 
   .tile {
     background: var(--tile-bg);
-    border: 1.5px solid var(--tile-border);
-    border-radius: 10px;
+    border: 2px solid var(--tile-border);
+    border-radius: 14px;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    cursor: pointer;
+    cursor: crosshair;
     position: relative;
-    transition: border-color 0.12s, background 0.12s, transform 0.1s;
+    transition: border-color 0.12s, background 0.15s, transform 0.12s, box-shadow 0.12s;
   }
 
-  .tile:hover {
-    border-color: var(--gem);
+  /* Hover ring — only show when not dragging */
+  .tile:hover:not(.selected) {
+    border-color: rgba(123,82,212,0.5);
   }
 
   .tile.selected {
     background: var(--tile-sel);
     border-color: var(--gem-bright);
-    box-shadow: 0 0 14px rgba(123,82,212,0.5);
-    transform: scale(1.06);
+    box-shadow: 0 0 20px rgba(123,82,212,0.6), inset 0 0 12px rgba(123,82,212,0.15);
+    transform: scale(1.08);
+    z-index: 5;
   }
+
+  /* Pulse on first selection */
+  @keyframes tileIn {
+    0%   { transform: scale(0.92); }
+    60%  { transform: scale(1.12); }
+    100% { transform: scale(1.08); }
+  }
+  .tile.selected { animation: tileIn 0.18s ease-out forwards; }
 
   .tile-letter {
     font-family: 'Playfair Display', serif;
-    font-size: 2rem;
+    font-size: 2.2rem;
     font-weight: 700;
     color: var(--text);
     line-height: 1;
+    pointer-events: none;
   }
 
-  .tile.selected .tile-letter { color: var(--gem-bright); }
+  .tile.selected .tile-letter { color: #fff; }
 
   .tile-pts {
-    font-size: 0.55rem;
+    font-size: 0.6rem;
     color: var(--muted);
     position: absolute;
-    bottom: 5px;
-    right: 7px;
+    bottom: 6px;
+    right: 8px;
     letter-spacing: 0.05em;
+    pointer-events: none;
   }
 
-  .tile.selected .tile-pts { color: var(--gem); }
+  .tile.selected .tile-pts { color: var(--gem-bright); }
 
   .tile-num {
-    font-size: 0.55rem;
-    color: rgba(123,82,212,0.6);
+    font-size: 0.6rem;
+    font-weight: 500;
+    color: rgba(200, 180, 255, 0.75);
     position: absolute;
-    top: 5px;
-    left: 7px;
+    top: 6px;
+    left: 8px;
+    pointer-events: none;
   }
 
   .status-msg {
@@ -365,13 +409,7 @@
 
   .gem-dot.lost { background: var(--border); }
 
-  @keyframes wobble {
-    0%,100% { transform: rotate(0deg); }
-    25% { transform: rotate(-3deg) scale(1.05); }
-    75% { transform: rotate(3deg) scale(1.05); }
-  }
 
-  .tile.in-path { animation: wobble 0.3s ease-in-out; }
 </style>
 </head>
 <body>
@@ -413,8 +451,12 @@
   <span class="current-word-pts" id="currentWordPts"></span>
 </div>
 
-<div class="grid-wrapper">
+<div class="grid-wrapper" id="gridWrapper">
   <div class="grid" id="grid"></div>
+  <svg class="path-svg" id="pathSvg">
+    <polyline class="path-line" id="pathLine" points=""/>
+    <line class="live-line" id="liveLine" x1="0" y1="0" x2="0" y2="0" style="display:none"/>
+  </svg>
 </div>
 
 <div class="status-msg" id="statusMsg">Click and drag letters — minimum 4 letters</div>
@@ -526,6 +568,9 @@ function generateGrid() {
   renderGrid();
 }
 
+// Cache tile center positions (relative to grid wrapper) for hit-testing
+let tileCenters = []; // [{x, y}] for each of 16 cells
+
 function renderGrid() {
   const g = document.getElementById('grid');
   g.innerHTML = '';
@@ -537,69 +582,110 @@ function renderGrid() {
       <span class="tile-letter">${letter}</span>
       <span class="tile-pts">${LETTER_VALUES[letter]}</span>
     `;
-    tile.addEventListener('mousedown', onMouseDown);
-    tile.addEventListener('mouseover', onMouseOver);
-    tile.addEventListener('touchstart', onTouchStart, {passive:false});
-    tile.addEventListener('touchmove', onTouchMove, {passive:false});
     g.appendChild(tile);
   });
-  document.addEventListener('mouseup', onMouseUp);
-  document.addEventListener('touchend', onTouchEnd);
+
+  // After DOM paint, measure centers
+  requestAnimationFrame(() => {
+    measureTileCenters();
+    setupDragListeners();
+  });
 }
 
-function getTileEl(i) {
-  return document.querySelector(`.tile[data-index="${i}"]`);
+function measureTileCenters() {
+  const wrapper = document.getElementById('gridWrapper');
+  const wRect = wrapper.getBoundingClientRect();
+  tileCenters = [];
+  for (let i = 0; i < 16; i++) {
+    const tile = document.querySelector(`.tile[data-index="${i}"]`);
+    const r = tile.getBoundingClientRect();
+    tileCenters.push({
+      x: r.left - wRect.left + r.width / 2,
+      y: r.top - wRect.top + r.height / 2
+    });
+  }
+  // Update SVG size to match wrapper
+  const svg = document.getElementById('pathSvg');
+  svg.setAttribute('viewBox', `0 0 ${wRect.width} ${wRect.height}`);
 }
 
-// ── Drag Interaction ──────────────────────────────────────────────
-function onMouseDown(e) {
+function setupDragListeners() {
+  const wrapper = document.getElementById('gridWrapper');
+
+  // Mouse
+  wrapper.addEventListener('mousedown', onDragStart);
+  document.addEventListener('mousemove', onDragMove);
+  document.addEventListener('mouseup', onDragEnd);
+
+  // Touch
+  wrapper.addEventListener('touchstart', onDragStart, {passive: false});
+  document.addEventListener('touchmove', onDragMove, {passive: false});
+  document.addEventListener('touchend', onDragEnd);
+}
+
+function getPointerPosRelative(e) {
+  const wrapper = document.getElementById('gridWrapper');
+  const r = wrapper.getBoundingClientRect();
+  const src = e.touches ? e.touches[0] : e;
+  return { x: src.clientX - r.left, y: src.clientY - r.top };
+}
+
+// Returns index of tile whose center is within SNAP_RADIUS of pointer, or -1
+const SNAP_RADIUS = 38; // px — tight enough to avoid accidentals
+
+function nearestTileInRadius(px, py) {
+  let best = -1, bestDist = SNAP_RADIUS;
+  tileCenters.forEach(({x, y}, i) => {
+    const d = Math.hypot(px - x, py - y);
+    if (d < bestDist) { bestDist = d; best = i; }
+  });
+  return best;
+}
+
+function onDragStart(e) {
   if (!roundActive) return;
+  if (e.type === 'touchstart') e.preventDefault();
   dragging = true;
   selectedCells = [];
-  const idx = +e.currentTarget.dataset.index;
-  addCell(idx);
-  e.preventDefault();
+  clearPathSvg();
+  const {x, y} = getPointerPosRelative(e);
+  const idx = nearestTileInRadius(x, y);
+  if (idx !== -1) addCell(idx);
 }
 
-function onMouseOver(e) {
+function onDragMove(e) {
   if (!dragging || !roundActive) return;
-  const idx = +e.currentTarget.dataset.index;
-  handleCellEntry(idx);
-}
+  if (e.type === 'touchmove') e.preventDefault();
 
-function onMouseUp() {
-  if (!dragging) return;
-  dragging = false;
-  submitWord();
-}
+  const {x, y} = getPointerPosRelative(e);
 
-function onTouchStart(e) {
-  if (!roundActive) return;
-  e.preventDefault();
-  dragging = true;
-  selectedCells = [];
-  const touch = e.touches[0];
-  const el = document.elementFromPoint(touch.clientX, touch.clientY);
-  const tile = el?.closest('.tile');
-  if (tile) addCell(+tile.dataset.index);
-}
+  // Update live rubber-band line from last selected tile to cursor
+  const liveLine = document.getElementById('liveLine');
+  if (selectedCells.length > 0) {
+    const last = tileCenters[selectedCells[selectedCells.length - 1]];
+    liveLine.setAttribute('x1', last.x);
+    liveLine.setAttribute('y1', last.y);
+    liveLine.setAttribute('x2', x);
+    liveLine.setAttribute('y2', y);
+    liveLine.style.display = '';
+  }
 
-function onTouchMove(e) {
-  if (!dragging || !roundActive) return;
-  e.preventDefault();
-  const touch = e.touches[0];
-  const el = document.elementFromPoint(touch.clientX, touch.clientY);
-  const tile = el?.closest('.tile');
-  if (tile) handleCellEntry(+tile.dataset.index);
-}
+  const idx = nearestTileInRadius(x, y);
+  if (idx === -1) return;
 
-function onTouchEnd() {
-  if (!dragging) return;
-  dragging = false;
-  submitWord();
-}
+  // Allow backing up: if pointer returns to previous tile, undo last step
+  if (selectedCells.length >= 2 && idx === selectedCells[selectedCells.length - 2]) {
+    const removed = selectedCells.pop();
+    const t = document.querySelector(`.tile[data-index="${removed}"]`);
+    if (t) {
+      t.classList.remove('selected');
+      t.querySelector('.tile-num')?.remove();
+    }
+    updateCurrentWord();
+    updatePathSvg();
+    return;
+  }
 
-function handleCellEntry(idx) {
   if (selectedCells.includes(idx)) return;
   const last = selectedCells[selectedCells.length - 1];
   if (last === undefined || isAdjacent(last, idx)) {
@@ -607,6 +693,31 @@ function handleCellEntry(idx) {
   }
 }
 
+function onDragEnd(e) {
+  if (!dragging) return;
+  dragging = false;
+  document.getElementById('liveLine').style.display = 'none';
+  submitWord();
+}
+
+function getTileEl(i) {
+  return document.querySelector(`.tile[data-index="${i}"]`);
+}
+
+// ── SVG Path Drawing ──────────────────────────────────────────────
+function updatePathSvg() {
+  if (selectedCells.length < 1) { clearPathSvg(); return; }
+  const pts = selectedCells.map(i => `${tileCenters[i].x},${tileCenters[i].y}`).join(' ');
+  document.getElementById('pathLine').setAttribute('points', pts);
+}
+
+function clearPathSvg() {
+  document.getElementById('pathLine').setAttribute('points', '');
+  const ll = document.getElementById('liveLine');
+  if (ll) ll.style.display = 'none';
+}
+
+// ── Drag Interaction ──────────────────────────────────────────────
 function addCell(idx) {
   selectedCells.push(idx);
   const tile = getTileEl(idx);
@@ -617,6 +728,7 @@ function addCell(idx) {
   num.textContent = selectedCells.length;
   tile.appendChild(num);
   updateCurrentWord();
+  updatePathSvg();
 }
 
 function clearSelection() {
@@ -628,6 +740,7 @@ function clearSelection() {
     }
   });
   selectedCells = [];
+  clearPathSvg();
   updateCurrentWord();
 }
 
@@ -732,6 +845,7 @@ function startRound() {
   document.getElementById('roundDisplay').textContent = round;
   updateGemsDisplay();
   setStatus('Click and drag letters — minimum 4 letters');
+  clearPathSvg();
   generateGrid();
   roundActive = true;
   startTimer();
@@ -859,6 +973,10 @@ function resetGame() {
 }
 
 // ── Init ──────────────────────────────────────────────────────────
+window.addEventListener('resize', () => {
+  if (tileCenters.length) measureTileCenters();
+});
+
 (async () => {
   setStatus('Loading dictionary…');
   await loadDictionary();
