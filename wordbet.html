@@ -1,0 +1,870 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WordBet</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Mono:wght@400;500&display=swap');
+
+  :root {
+    --bg: #0d0d0f;
+    --surface: #16161a;
+    --card: #1e1e24;
+    --border: #2a2a35;
+    --gold: #c9a84c;
+    --gold-glow: #e6c86e;
+    --gem: #7b52d4;
+    --gem-bright: #a07ef5;
+    --accent: #e05c5c;
+    --green: #4caf7d;
+    --text: #e8e4d9;
+    --muted: #6b6880;
+    --tile-bg: #23232d;
+    --tile-sel: #2e1f5e;
+    --tile-border: #3a3a4a;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: radial-gradient(ellipse at 20% 20%, rgba(123,82,212,0.07) 0%, transparent 60%),
+                radial-gradient(ellipse at 80% 80%, rgba(201,168,76,0.06) 0%, transparent 60%);
+    pointer-events: none;
+  }
+
+  h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: 2.8rem;
+    font-weight: 900;
+    letter-spacing: 0.02em;
+    background: linear-gradient(135deg, var(--gold) 30%, var(--gem-bright) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 4px;
+  }
+
+  .tagline {
+    color: var(--muted);
+    font-size: 0.7rem;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    margin-bottom: 20px;
+  }
+
+  .hud {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .hud-box {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 18px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 120px;
+  }
+
+  .hud-label {
+    font-size: 0.6rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--muted);
+    display: block;
+    margin-bottom: 2px;
+  }
+
+  .hud-value {
+    font-size: 1.2rem;
+    font-weight: 500;
+  }
+
+  .gems-icon { font-size: 1.3rem; }
+
+  .gems-val { color: var(--gem-bright); }
+  .timer-val { color: var(--gold); }
+  .timer-val.urgent { color: var(--accent); animation: pulse 0.6s ease-in-out infinite; }
+
+  @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.5; } }
+
+  .best-word-box {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px 24px;
+    margin-bottom: 16px;
+    text-align: center;
+    min-width: 260px;
+  }
+
+  .best-word-label {
+    font-size: 0.6rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+
+  .best-word-text {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: var(--gold-glow);
+    letter-spacing: 0.05em;
+  }
+
+  .best-word-pts {
+    font-size: 0.8rem;
+    color: var(--gem-bright);
+    margin-top: 4px;
+  }
+
+  .current-word-box {
+    background: rgba(123,82,212,0.1);
+    border: 1px solid rgba(123,82,212,0.3);
+    border-radius: 8px;
+    padding: 8px 18px;
+    margin-bottom: 14px;
+    text-align: center;
+    min-height: 38px;
+    min-width: 200px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+
+  .current-word-text {
+    font-size: 1.1rem;
+    letter-spacing: 0.15em;
+    color: var(--gem-bright);
+  }
+
+  .current-word-pts {
+    font-size: 0.75rem;
+    color: var(--muted);
+  }
+
+  .grid-wrapper {
+    position: relative;
+    user-select: none;
+    margin-bottom: 18px;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(4, 80px);
+    grid-template-rows: repeat(4, 80px);
+    gap: 6px;
+    position: relative;
+  }
+
+  .tile {
+    background: var(--tile-bg);
+    border: 1.5px solid var(--tile-border);
+    border-radius: 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    position: relative;
+    transition: border-color 0.12s, background 0.12s, transform 0.1s;
+  }
+
+  .tile:hover {
+    border-color: var(--gem);
+  }
+
+  .tile.selected {
+    background: var(--tile-sel);
+    border-color: var(--gem-bright);
+    box-shadow: 0 0 14px rgba(123,82,212,0.5);
+    transform: scale(1.06);
+  }
+
+  .tile-letter {
+    font-family: 'Playfair Display', serif;
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--text);
+    line-height: 1;
+  }
+
+  .tile.selected .tile-letter { color: var(--gem-bright); }
+
+  .tile-pts {
+    font-size: 0.55rem;
+    color: var(--muted);
+    position: absolute;
+    bottom: 5px;
+    right: 7px;
+    letter-spacing: 0.05em;
+  }
+
+  .tile.selected .tile-pts { color: var(--gem); }
+
+  .tile-num {
+    font-size: 0.55rem;
+    color: rgba(123,82,212,0.6);
+    position: absolute;
+    top: 5px;
+    left: 7px;
+  }
+
+  .status-msg {
+    font-size: 0.75rem;
+    color: var(--muted);
+    margin-bottom: 14px;
+    min-height: 18px;
+    letter-spacing: 0.05em;
+  }
+
+  .status-msg.good { color: var(--green); }
+  .status-msg.bad { color: var(--accent); }
+
+  /* Overlay */
+  .overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.85);
+    backdrop-filter: blur(6px);
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+
+  .overlay.hidden { display: none; }
+
+  .modal {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 36px 40px;
+    max-width: 480px;
+    width: 100%;
+    text-align: center;
+    position: relative;
+  }
+
+  .modal h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.8rem;
+    font-weight: 700;
+    margin-bottom: 10px;
+  }
+
+  .modal p {
+    color: var(--muted);
+    font-size: 0.78rem;
+    line-height: 1.7;
+    margin-bottom: 16px;
+  }
+
+  .modal .highlight {
+    color: var(--gold-glow);
+    font-size: 1.1rem;
+    font-weight: 500;
+  }
+
+  .bet-btns {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    margin: 18px 0 10px;
+  }
+
+  .btn {
+    background: var(--gem);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 20px;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: background 0.15s, transform 0.1s;
+    letter-spacing: 0.05em;
+  }
+
+  .btn:hover { background: var(--gem-bright); transform: translateY(-1px); }
+  .btn:active { transform: translateY(1px); }
+
+  .btn.gold { background: var(--gold); color: #1a1200; }
+  .btn.gold:hover { background: var(--gold-glow); }
+
+  .btn.danger { background: var(--accent); }
+  .btn.danger:hover { background: #f07070; }
+
+  .bet-label {
+    font-size: 0.6rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+
+  .result-icon { font-size: 3rem; margin-bottom: 10px; }
+
+  .word-list {
+    max-height: 130px;
+    overflow-y: auto;
+    font-size: 0.65rem;
+    color: var(--muted);
+    text-align: left;
+    background: var(--surface);
+    border-radius: 8px;
+    padding: 10px 14px;
+    margin: 10px 0;
+    line-height: 1.8;
+  }
+
+  .word-list::-webkit-scrollbar { width: 4px; }
+  .word-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .gem-bar {
+    display: flex;
+    gap: 5px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin: 12px 0 4px;
+  }
+
+  .gem-dot {
+    width: 14px;
+    height: 14px;
+    border-radius: 3px;
+    background: var(--gem-bright);
+    transition: background 0.2s;
+  }
+
+  .gem-dot.lost { background: var(--border); }
+
+  @keyframes wobble {
+    0%,100% { transform: rotate(0deg); }
+    25% { transform: rotate(-3deg) scale(1.05); }
+    75% { transform: rotate(3deg) scale(1.05); }
+  }
+
+  .tile.in-path { animation: wobble 0.3s ease-in-out; }
+</style>
+</head>
+<body>
+
+<h1>WordBet</h1>
+
+<div class="hud">
+  <div class="hud-box">
+    <span class="gems-icon">💎</span>
+    <div>
+      <span class="hud-label">Gemstones</span>
+      <span class="hud-value gems-val" id="gemsDisplay">10</span>
+    </div>
+  </div>
+  <div class="hud-box">
+    <span style="font-size:1.3rem">⏱</span>
+    <div>
+      <span class="hud-label">Time Left</span>
+      <span class="hud-value timer-val" id="timerDisplay">1:00</span>
+    </div>
+  </div>
+  <div class="hud-box">
+    <span style="font-size:1.3rem">🔢</span>
+    <div>
+      <span class="hud-label">Round</span>
+      <span class="hud-value" id="roundDisplay">1</span>
+    </div>
+  </div>
+</div>
+
+<div class="best-word-box">
+  <div class="best-word-label">Best Word Found</div>
+  <div class="best-word-text" id="bestWordText">— — — —</div>
+  <div class="best-word-pts" id="bestWordPts">find a word to start</div>
+</div>
+
+<div class="current-word-box">
+  <span class="current-word-text" id="currentWordText">drag letters to form a word</span>
+  <span class="current-word-pts" id="currentWordPts"></span>
+</div>
+
+<div class="grid-wrapper">
+  <div class="grid" id="grid"></div>
+</div>
+
+<div class="status-msg" id="statusMsg">Click and drag letters — minimum 4 letters</div>
+
+<!-- Bet Overlay -->
+<div class="overlay hidden" id="betOverlay">
+  <div class="modal">
+    <h2 id="betTitle">⏰ Time's Up!</h2>
+    <p id="betDesc">Loading results...</p>
+    <div class="bet-label">Your best word:</div>
+    <div class="highlight" id="betWordShow">—</div>
+    <br>
+    <p>Do you think your best word scores <strong style="color:var(--gold)">better than 80%</strong> of all valid words on this grid?</p>
+    <p style="color:var(--muted);font-size:0.7rem;">Bet 1–3 💎 based on your confidence. Win = gain gems. Lose = lose gems.</p>
+    <div class="bet-label" style="margin-top:10px">Choose your bet:</div>
+    <div class="bet-btns">
+      <button class="btn" onclick="placeBet(1)">Bet 1 💎<br><small>cautious</small></button>
+      <button class="btn gold" onclick="placeBet(2)">Bet 2 💎<br><small>confident</small></button>
+      <button class="btn danger" onclick="placeBet(3)">Bet 3 💎<br><small>bold</small></button>
+    </div>
+  </div>
+</div>
+
+<!-- Result Overlay -->
+<div class="overlay hidden" id="resultOverlay">
+  <div class="modal">
+    <div class="result-icon" id="resultIcon">🎉</div>
+    <h2 id="resultTitle">You Won!</h2>
+    <p id="resultDesc">Details here.</p>
+    <div class="word-list" id="allWordsList"></div>
+    <div class="gem-bar" id="gemBar"></div>
+    <p style="font-size:0.7rem;color:var(--muted)" id="gemTotal"></p>
+    <button class="btn gold" id="nextRoundBtn" onclick="startRound()">Next Round ▶</button>
+  </div>
+</div>
+
+<!-- Game Over Overlay -->
+<div class="overlay hidden" id="gameOverOverlay">
+  <div class="modal">
+    <div class="result-icon" id="gameOverIcon">💀</div>
+    <h2 id="gameOverTitle">Game Over</h2>
+    <p id="gameOverDesc">You ran out of gemstones.</p>
+    <button class="btn gold" onclick="resetGame()">Play Again</button>
+  </div>
+</div>
+
+<script>
+// ── Scrabble values ──────────────────────────────────────────────
+const LETTER_VALUES = {
+  A:1,B:3,C:3,D:2,E:1,F:4,G:2,H:4,I:1,J:8,K:5,L:1,M:3,
+  N:1,O:1,P:3,Q:10,R:1,S:1,T:1,U:1,V:4,W:4,X:8,Y:4,Z:10
+};
+
+// Weighted distribution similar to Scrabble bag
+const LETTER_POOL = (
+  'AAAAAAAAABBCCDDDDEEEEEEEEEEEEFFGGGHHIIIIIIIIIJKLLLLMMNNNNN' +
+  'NNOOOOOOOOPPQRRRRRRSSSSTTTTTTUUUUVVWWXYYZ'
+).split('');
+
+// ── Dictionary (subset of common English words) ──────────────────
+// We load from a word list approach — embed a compact trie check via a hardcoded word set
+// Using a reasonable 15k-word list approach: fetch from public API or use embedded set
+// We'll use a built-in set of valid English words (common words 4+ letters)
+let WORD_SET = new Set();
+
+async function loadDictionary() {
+  // Use a public word list
+  try {
+    const res = await fetch('https://raw.githubusercontent.com/dwyl/english-words/master/words_alpha.txt');
+    const text = await res.text();
+    const words = text.split('\n').map(w => w.trim().toUpperCase()).filter(w => w.length >= 4);
+    WORD_SET = new Set(words);
+  } catch(e) {
+    // fallback: use a compact embedded common-word list
+    WORD_SET = new Set(FALLBACK_WORDS);
+  }
+}
+
+// ── Game State ────────────────────────────────────────────────────
+let grid = [];          // 16 letters
+let gems = 10;
+let round = 1;
+let timerInterval = null;
+let timeLeft = 60;
+let bestWord = '';
+let bestPoints = 0;
+let dragging = false;
+let selectedCells = [];
+let roundActive = false;
+
+// ── Helpers ───────────────────────────────────────────────────────
+function randomLetter() {
+  return LETTER_POOL[Math.floor(Math.random() * LETTER_POOL.length)];
+}
+
+function wordScore(word) {
+  return word.split('').reduce((s, c) => s + (LETTER_VALUES[c] || 0), 0);
+}
+
+function isAdjacent(a, b) {
+  const ar = Math.floor(a / 4), ac = a % 4;
+  const br = Math.floor(b / 4), bc = b % 4;
+  return Math.abs(ar - br) <= 1 && Math.abs(ac - bc) <= 1 && a !== b;
+}
+
+// ── Grid Generation ───────────────────────────────────────────────
+function generateGrid() {
+  grid = Array.from({length: 16}, () => randomLetter());
+  renderGrid();
+}
+
+function renderGrid() {
+  const g = document.getElementById('grid');
+  g.innerHTML = '';
+  grid.forEach((letter, i) => {
+    const tile = document.createElement('div');
+    tile.className = 'tile';
+    tile.dataset.index = i;
+    tile.innerHTML = `
+      <span class="tile-letter">${letter}</span>
+      <span class="tile-pts">${LETTER_VALUES[letter]}</span>
+    `;
+    tile.addEventListener('mousedown', onMouseDown);
+    tile.addEventListener('mouseover', onMouseOver);
+    tile.addEventListener('touchstart', onTouchStart, {passive:false});
+    tile.addEventListener('touchmove', onTouchMove, {passive:false});
+    g.appendChild(tile);
+  });
+  document.addEventListener('mouseup', onMouseUp);
+  document.addEventListener('touchend', onTouchEnd);
+}
+
+function getTileEl(i) {
+  return document.querySelector(`.tile[data-index="${i}"]`);
+}
+
+// ── Drag Interaction ──────────────────────────────────────────────
+function onMouseDown(e) {
+  if (!roundActive) return;
+  dragging = true;
+  selectedCells = [];
+  const idx = +e.currentTarget.dataset.index;
+  addCell(idx);
+  e.preventDefault();
+}
+
+function onMouseOver(e) {
+  if (!dragging || !roundActive) return;
+  const idx = +e.currentTarget.dataset.index;
+  handleCellEntry(idx);
+}
+
+function onMouseUp() {
+  if (!dragging) return;
+  dragging = false;
+  submitWord();
+}
+
+function onTouchStart(e) {
+  if (!roundActive) return;
+  e.preventDefault();
+  dragging = true;
+  selectedCells = [];
+  const touch = e.touches[0];
+  const el = document.elementFromPoint(touch.clientX, touch.clientY);
+  const tile = el?.closest('.tile');
+  if (tile) addCell(+tile.dataset.index);
+}
+
+function onTouchMove(e) {
+  if (!dragging || !roundActive) return;
+  e.preventDefault();
+  const touch = e.touches[0];
+  const el = document.elementFromPoint(touch.clientX, touch.clientY);
+  const tile = el?.closest('.tile');
+  if (tile) handleCellEntry(+tile.dataset.index);
+}
+
+function onTouchEnd() {
+  if (!dragging) return;
+  dragging = false;
+  submitWord();
+}
+
+function handleCellEntry(idx) {
+  if (selectedCells.includes(idx)) return;
+  const last = selectedCells[selectedCells.length - 1];
+  if (last === undefined || isAdjacent(last, idx)) {
+    addCell(idx);
+  }
+}
+
+function addCell(idx) {
+  selectedCells.push(idx);
+  const tile = getTileEl(idx);
+  tile.classList.add('selected');
+  tile.querySelector('.tile-num')?.remove();
+  const num = document.createElement('span');
+  num.className = 'tile-num';
+  num.textContent = selectedCells.length;
+  tile.appendChild(num);
+  updateCurrentWord();
+}
+
+function clearSelection() {
+  selectedCells.forEach(i => {
+    const t = getTileEl(i);
+    if (t) {
+      t.classList.remove('selected');
+      t.querySelector('.tile-num')?.remove();
+    }
+  });
+  selectedCells = [];
+  updateCurrentWord();
+}
+
+function updateCurrentWord() {
+  const word = selectedCells.map(i => grid[i]).join('');
+  const pts = wordScore(word);
+  document.getElementById('currentWordText').textContent = word || 'drag letters to form a word';
+  document.getElementById('currentWordPts').textContent = word ? `${pts} pts` : '';
+}
+
+function submitWord() {
+  const word = selectedCells.map(i => grid[i]).join('');
+  if (word.length < 4) {
+    clearSelection();
+    setStatus('Words must be at least 4 letters', 'bad');
+    return;
+  }
+  if (!WORD_SET.has(word)) {
+    clearSelection();
+    setStatus(`"${word}" is not a valid word`, 'bad');
+    return;
+  }
+  const pts = wordScore(word);
+  setStatus(`"${word}" — ${pts} pts ✓`, 'good');
+  if (pts > bestPoints) {
+    bestPoints = pts;
+    bestWord = word;
+    document.getElementById('bestWordText').textContent = word;
+    document.getElementById('bestWordPts').textContent = `${pts} points`;
+  }
+  clearSelection();
+}
+
+function setStatus(msg, cls = '') {
+  const el = document.getElementById('statusMsg');
+  el.textContent = msg;
+  el.className = 'status-msg ' + cls;
+}
+
+// ── Timer ─────────────────────────────────────────────────────────
+function startTimer() {
+  timeLeft = 60;
+  updateTimerDisplay();
+  timerInterval = setInterval(() => {
+    timeLeft--;
+    updateTimerDisplay();
+    if (timeLeft <= 0) {
+      clearInterval(timerInterval);
+      endRound();
+    }
+  }, 1000);
+}
+
+function updateTimerDisplay() {
+  const el = document.getElementById('timerDisplay');
+  const m = Math.floor(timeLeft / 60);
+  const s = timeLeft % 60;
+  el.textContent = `${m}:${s.toString().padStart(2,'0')}`;
+  el.className = 'hud-value timer-val' + (timeLeft <= 10 ? ' urgent' : '');
+}
+
+// ── Word Finder ───────────────────────────────────────────────────
+function findAllWords() {
+  const results = [];
+  // BFS/DFS through all paths on 4x4 grid
+  function dfs(path, visited) {
+    if (path.length >= 4) {
+      const word = path.map(i => grid[i]).join('');
+      if (WORD_SET.has(word)) results.push(word);
+    }
+    if (path.length >= 8) return; // cap depth for performance
+    const last = path[path.length - 1];
+    for (let n = 0; n < 16; n++) {
+      if (!visited[n] && isAdjacent(last, n)) {
+        visited[n] = true;
+        path.push(n);
+        dfs(path, visited);
+        path.pop();
+        visited[n] = false;
+      }
+    }
+  }
+  for (let start = 0; start < 16; start++) {
+    const vis = new Array(16).fill(false);
+    vis[start] = true;
+    dfs([start], vis);
+  }
+  return [...new Set(results)];
+}
+
+// ── Round Flow ────────────────────────────────────────────────────
+function startRound() {
+  document.getElementById('resultOverlay').classList.add('hidden');
+  document.getElementById('betOverlay').classList.add('hidden');
+  bestWord = '';
+  bestPoints = 0;
+  selectedCells = [];
+  document.getElementById('bestWordText').textContent = '— — — —';
+  document.getElementById('bestWordPts').textContent = 'find a word to start';
+  document.getElementById('currentWordText').textContent = 'drag letters to form a word';
+  document.getElementById('currentWordPts').textContent = '';
+  document.getElementById('roundDisplay').textContent = round;
+  updateGemsDisplay();
+  setStatus('Click and drag letters — minimum 4 letters');
+  generateGrid();
+  roundActive = true;
+  startTimer();
+}
+
+function endRound() {
+  roundActive = false;
+  dragging = false;
+  clearSelection();
+
+  // Find all valid words
+  const allWords = findAllWords();
+  const wordScores = allWords.map(w => wordScore(w)).sort((a,b) => a-b);
+
+  // Show bet overlay
+  const overlay = document.getElementById('betOverlay');
+  document.getElementById('betTitle').textContent = '⏰ Time\'s Up!';
+  document.getElementById('betWordShow').textContent =
+    bestWord ? `${bestWord} (${bestPoints} pts)` : 'No valid word found';
+
+  const total = wordScores.length;
+  document.getElementById('betDesc').textContent =
+    `${total} valid word${total !== 1 ? 's' : ''} found on this grid. ` +
+    `Can you beat 80% of them?`;
+
+  overlay.classList.remove('hidden');
+}
+
+let currentBetAmount = 0;
+let lastAllWords = [];
+
+function placeBet(amount) {
+  if (gems < amount) {
+    alert("Not enough gemstones!");
+    return;
+  }
+  currentBetAmount = amount;
+  document.getElementById('betOverlay').classList.add('hidden');
+
+  // Recalculate
+  const allWords = findAllWords();
+  lastAllWords = allWords;
+  const wordScores = allWords.map(w => wordScore(w)).sort((a,b) => a-b);
+  const total = wordScores.length;
+
+  let percentile = 0;
+  if (total > 0 && bestPoints > 0) {
+    const below = wordScores.filter(s => s < bestPoints).length;
+    percentile = (below / total) * 100;
+  }
+
+  const won = percentile >= 80;
+
+  if (won) {
+    gems += amount;
+  } else {
+    gems -= amount;
+  }
+
+  updateGemsDisplay();
+
+  // Show result
+  document.getElementById('resultIcon').textContent = won ? '🎉' : '💸';
+  document.getElementById('resultTitle').textContent = won ? 'Correct!' : 'Wrong Bet';
+  document.getElementById('resultDesc').innerHTML = won
+    ? `Your word <strong style="color:var(--gold)">${bestWord || '—'}</strong> (${bestPoints} pts) beats <strong>${percentile.toFixed(0)}%</strong> of all words. You win <strong style="color:var(--gem-bright)">${amount} 💎</strong>!`
+    : `Your word <strong style="color:var(--gold)">${bestWord || '—'}</strong> (${bestPoints} pts) only beats <strong>${percentile.toFixed(0)}%</strong> of all words (needed 80%). You lose <strong style="color:var(--accent)">${amount} 💎</strong>.`;
+
+  // Top words list
+  const sortedByScore = [...allWords].sort((a,b) => wordScore(b) - wordScore(a));
+  const listEl = document.getElementById('allWordsList');
+  listEl.innerHTML = `<strong style="color:var(--text)">All valid words (${allWords.length}):</strong><br>` +
+    sortedByScore.slice(0, 60).map(w => `${w} (${wordScore(w)})`).join(' · ') +
+    (sortedByScore.length > 60 ? ' · ...' : '');
+
+  // Gem bar
+  renderGemBar();
+  document.getElementById('gemTotal').textContent = `💎 ${gems} gemstone${gems !== 1 ? 's' : ''} remaining`;
+
+  // Check win/lose
+  if (gems <= 0) {
+    showGameOver(false);
+    return;
+  }
+  if (gems >= 20) {
+    showGameOver(true);
+    return;
+  }
+
+  round++;
+  document.getElementById('nextRoundBtn').textContent = `Round ${round} ▶`;
+  document.getElementById('resultOverlay').classList.remove('hidden');
+}
+
+function renderGemBar() {
+  const bar = document.getElementById('gemBar');
+  bar.innerHTML = '';
+  for (let i = 0; i < 20; i++) {
+    const dot = document.createElement('div');
+    dot.className = 'gem-dot' + (i >= gems ? ' lost' : '');
+    bar.appendChild(dot);
+  }
+}
+
+function updateGemsDisplay() {
+  document.getElementById('gemsDisplay').textContent = gems;
+}
+
+function showGameOver(won) {
+  document.getElementById('resultOverlay').classList.add('hidden');
+  const el = document.getElementById('gameOverOverlay');
+  document.getElementById('gameOverIcon').textContent = won ? '👑' : '💀';
+  document.getElementById('gameOverTitle').textContent = won ? 'You Win!' : 'Game Over';
+  document.getElementById('gameOverDesc').textContent = won
+    ? `You reached 20 💎 in ${round} rounds! Masterful word play.`
+    : `You ran out of gemstones after ${round} rounds.`;
+  el.classList.remove('hidden');
+}
+
+function resetGame() {
+  document.getElementById('gameOverOverlay').classList.add('hidden');
+  gems = 10;
+  round = 1;
+  startRound();
+}
+
+// ── Init ──────────────────────────────────────────────────────────
+(async () => {
+  setStatus('Loading dictionary…');
+  await loadDictionary();
+  setStatus('Dictionary loaded! Starting game…');
+  setTimeout(startRound, 600);
+})();
+</script>
+</body>
+</html>
