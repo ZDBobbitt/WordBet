@@ -259,8 +259,8 @@
   .tile.selected .tile-letter { color: #fff; }
 
   .tile-pts {
-    font-size: 0.8rem;
-    color: #FFEC96;
+    font-size: 0.6rem;
+    color: var(--muted);
     position: absolute;
     bottom: 6px;
     right: 8px;
@@ -800,7 +800,7 @@
 // ── Scrabble values ──────────────────────────────────────────────
 const LETTER_VALUES = {
   A:1,B:3,C:3,D:2,E:1,F:4,G:2,H:4,I:1,J:8,K:5,L:1,M:3,
-  N:1,O:1,P:3,Q:6,R:1,S:1,T:1,U:1,V:4,W:4,X:8,Y:4,Z:10
+  N:1,O:1,P:3,Q:10,R:1,S:1,T:1,U:1,V:4,W:4,X:8,Y:4,Z:10
 };
 
 // Weighted distribution similar to Scrabble bag — Q excluded from pool, handled separately
@@ -826,10 +826,11 @@ function tileScore(tile) {
 let WORD_SET = new Set();
 
 async function loadDictionary() {
-  // Primary: dolph/dictionary popular.txt — 25k words cross-referenced from
-  // the Scrabble dictionary AND Wiktionary TV/movie frequency lists.
-  // Fallback: enable1.txt from the same repo (Official Scrabble Players Dictionary).
+  // Primary: redbo/scrabble dictionary.txt — the TWL (Tournament Word List),
+  // the official North American Scrabble dictionary used in competitive play.
+  // Fallbacks: dolph popular.txt (curated common words), then enable1.txt.
   const SOURCES = [
+    'https://raw.githubusercontent.com/redbo/scrabble/master/dictionary.txt',
     'https://raw.githubusercontent.com/dolph/dictionary/master/popular.txt',
     'https://raw.githubusercontent.com/dolph/dictionary/master/enable1.txt',
   ];
@@ -1336,7 +1337,7 @@ function placeBet(amount) {
 
   let percentile = 0;
   if (total > 0 && bestPoints > 0) {
-    const below = wordScores.filter(s => s < bestPoints).length;
+    const below = wordScores.filter(s => s <= bestPoints).length;
     percentile = (below / total) * 100;
   }
 
