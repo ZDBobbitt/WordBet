@@ -172,12 +172,10 @@
     position: relative;
     user-select: none;
     margin-bottom: 18px;
-    /* prevent any text selection during drag */
     -webkit-user-select: none;
     touch-action: none;
   }
 
-  /* The SVG sits on top, pointer-events none so tiles still get mousedown */
   .path-svg {
     position: absolute;
     top: 0; left: 0;
@@ -225,7 +223,6 @@
     transition: border-color 0.12s, background 0.15s, transform 0.12s, box-shadow 0.12s;
   }
 
-  /* Hover ring — only show when not dragging */
   .tile:hover:not(.selected) {
     border-color: rgba(123,82,212,0.5);
   }
@@ -238,7 +235,6 @@
     z-index: 5;
   }
 
-  /* Pulse on first selection */
   @keyframes tileIn {
     0%   { transform: scale(0.92); }
     60%  { transform: scale(1.12); }
@@ -253,6 +249,11 @@
     color: var(--text);
     line-height: 1;
     pointer-events: none;
+  }
+
+  /* Qu tile needs smaller font to fit */
+  .tile-letter.qu {
+    font-size: 1.55rem;
   }
 
   .tile.selected .tile-letter { color: #fff; }
@@ -391,6 +392,15 @@
   .word-list::-webkit-scrollbar { width: 4px; }
   .word-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
 
+  /* Highlight the player's best word in the word list */
+  .word-list .player-word {
+    color: var(--gold-glow);
+    font-weight: 500;
+    background: rgba(201,168,76,0.12);
+    border-radius: 3px;
+    padding: 0 3px;
+  }
+
   .gem-bar {
     display: flex;
     gap: 5px;
@@ -509,7 +519,6 @@
 
   .htp-text strong { color: var(--text); }
 
-  /* Mini tile grid demo */
   .htp-demo-grid {
     display: grid;
     grid-template-columns: repeat(4, 52px);
@@ -565,7 +574,6 @@
     left: 4px;
   }
 
-  /* SVG path on the demo grid */
   .htp-path-svg {
     position: absolute;
     inset: 0;
@@ -575,7 +583,6 @@
     overflow: visible;
   }
 
-  /* Scrabble value table */
   .htp-value-table {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -607,7 +614,6 @@
 
   .htp-val-badge.gold { background: var(--gold); color: #1a1200; }
 
-  /* Gem / bet example */
   .htp-bet-row {
     display: flex;
     align-items: center;
@@ -682,13 +688,7 @@
       <span class="hud-value timer-val" id="timerDisplay">1:00</span>
     </div>
   </div>
-  <div class="hud-box">
-    <span style="font-size:1.3rem">🔢</span>
-    <div>
-      <span class="hud-label">Round</span>
-      <span class="hud-value" id="roundDisplay">1</span>
-    </div>
-  </div>
+
 </div>
 
 <div class="best-word-box">
@@ -698,7 +698,7 @@
 </div>
 
 <div class="current-word-box">
-  <span class="current-word-text" id="currentWordText">drag letters to form a word</span>
+  <span class="current-word-text" id="currentWordText">&nbsp;</span>
   <span class="current-word-pts" id="currentWordPts"></span>
 </div>
 
@@ -723,18 +723,12 @@
 
     <div class="htp-body">
 
-      <!-- THE GRID -->
       <div class="htp-section">
         <div class="htp-section-title">The Grid</div>
-        <p class="htp-text">A <strong>4×4 grid</strong> of random letters appears each round. Each letter carries a <strong> point value</strong> shown in the corner of the tile.</p>
-
-        <!-- Demo grid: show a static 4x4 with path W-O-R-D highlighted -->
-        <div class="htp-demo-grid" id="htpDemoGrid">
-          <!-- filled by JS -->
-        </div>
+        <p class="htp-text">A <strong>4×4 grid</strong> of random letters appears each round. Each letter carries a <strong>point value</strong> shown in the corner of the tile.</p>
+        <div class="htp-demo-grid" id="htpDemoGrid"></div>
       </div>
 
-      <!-- FORMING WORDS -->
       <div class="htp-section">
         <div class="htp-section-title">Forming Words</div>
         <p class="htp-text">
@@ -742,17 +736,15 @@
         </p>
       </div>
 
-      <!-- THE BET -->
       <div class="htp-section">
         <div class="htp-section-title">The Bet</div>
         <p class="htp-text">You have <strong>60 seconds</strong> to find the highest-scoring word you can. When time is up, the game secretly finds <em>every</em> valid word on the grid.</p>
         <p class="htp-text" style="margin-top:8px">Then you're asked: <strong>does your best word beat 80% of all possible words?</strong> Bet between 1 and 3 gemstones based on your confidence.</p>
-		<p class="htp-text" style="margin-top:8px">If you bet incorrectly, you lose that number of gemstones. If you bet correctly, you win that number of gemstones.</p>
+        <p class="htp-text" style="margin-top:8px">If you bet incorrectly, you lose that number of gemstones. If you bet correctly, you win that number of gemstones.</p>
       </div>
 
-      <!-- WIN / LOSE -->
       <div class="htp-section">
-	    <div class="htp-section-title">How to Win</div>
+        <div class="htp-section-title">How to Win</div>
         <p class="htp-text" style="margin-top:10px">You start with <strong>10 gemstones</strong>. If you reach 20 gemstones, you win. If you reach 0 gemstones, you lose.</p>
       </div>
 
@@ -808,36 +800,190 @@
 // ── Scrabble values ──────────────────────────────────────────────
 const LETTER_VALUES = {
   A:1,B:3,C:3,D:2,E:1,F:4,G:2,H:4,I:1,J:8,K:5,L:1,M:3,
-  N:1,O:1,P:3,Q:10,R:1,S:1,T:1,U:1,V:4,W:4,X:8,Y:4,Z:10
+  N:1,O:1,P:3,Q:6,R:1,S:1,T:1,U:1,V:4,W:4,X:8,Y:4,Z:10
 };
 
-// Weighted distribution similar to Scrabble bag
+// Weighted distribution similar to Scrabble bag — Q excluded from pool, handled separately
 const LETTER_POOL = (
   'AAAAAAAAABBCCDDDDEEEEEEEEEEEEFFGGGHHIIIIIIIIIJKLLLLMMNNNNN' +
-  'NNOOOOOOOOPPQRRRRRRSSSSTTTTTTUUUUVVWWXYYZ'
+  'NNOOOOOOOOPPRRRRRRSSSSTTTTTTUUUUVVWWXYYZ'
 ).split('');
 
-// ── Dictionary (subset of common English words) ──────────────────
-// We load from a word list approach — embed a compact trie check via a hardcoded word set
-// Using a reasonable 15k-word list approach: fetch from public API or use embedded set
-// We'll use a built-in set of valid English words (common words 4+ letters)
+// "QU" tile: appears with roughly 1-in-50 chance (same rarity as Q in Scrabble)
+function randomLetter() {
+  if (Math.random() < 0.02) return 'QU';
+  return LETTER_POOL[Math.floor(Math.random() * LETTER_POOL.length)];
+}
+
+// Score a tile — QU counts as Q(10) + U(1) = 11
+function tileScore(tile) {
+  if (tile === 'QU') return LETTER_VALUES['Q'] + LETTER_VALUES['U'];
+  return LETTER_VALUES[tile] || 0;
+}
+
+// ── Dictionary ────────────────────────────────────────────────────
+// Uses the Google 10000 most common English words list — familiar, everyday vocabulary only
 let WORD_SET = new Set();
 
 async function loadDictionary() {
-  // Use a public word list
-  try {
-    const res = await fetch('https://raw.githubusercontent.com/dwyl/english-words/master/words_alpha.txt');
-    const text = await res.text();
-    const words = text.split('\n').map(w => w.trim().toUpperCase()).filter(w => w.length >= 4);
-    WORD_SET = new Set(words);
-  } catch(e) {
-    // fallback: use a compact embedded common-word list
-    WORD_SET = new Set(FALLBACK_WORDS);
+  // Primary: dolph/dictionary popular.txt — 25k words cross-referenced from
+  // the Scrabble dictionary AND Wiktionary TV/movie frequency lists.
+  // Fallback: enable1.txt from the same repo (Official Scrabble Players Dictionary).
+  const SOURCES = [
+    'https://raw.githubusercontent.com/dolph/dictionary/master/popular.txt',
+    'https://raw.githubusercontent.com/dolph/dictionary/master/enable1.txt',
+  ];
+
+  for (const url of SOURCES) {
+    try {
+      const res = await fetch(url);
+      if (!res.ok) continue;
+      const text = await res.text();
+      const words = text.split(/\s+/).map(w => w.trim().toUpperCase()).filter(w => /^[A-Z]{4,}$/.test(w));
+      if (words.length > 1000) {
+        WORD_SET = new Set(words);
+        // Also accept simple plurals: add every word + S so e.g. WARDENS is valid if WARDEN is
+        for (const w of words) {
+          if (!w.endsWith('S')) WORD_SET.add(w + 'S');
+        }
+        return;
+      }
+    } catch(e) { /* try next */ }
+  }
+
+  // Final fallback: hardcoded common words
+  const fallback = new Set([
+    'ABLE','ALSO','AREA','ARMY','AWAY','BABY','BACK','BALL','BAND','BANK','BASE','BATH',
+    'BEAR','BEAT','BEEN','BELL','BELT','BEST','BIRD','BLOW','BLUE','BOAT','BODY','BOLD',
+    'BOMB','BOND','BONE','BOOK','BOOM','BORN','BOTH','BOWL','BURN','CALL','CALM','CAME',
+    'CAMP','CARD','CARE','CART','CASE','CASH','CAST','CAVE','CELL','CENT','CHAT','CHIN',
+    'CHIP','CITY','CLAP','CLAY','CLIP','CLUB','CLUE','COAT','CODE','COIL','COIN','COLD',
+    'COME','COOK','COOL','COPE','COPY','CORD','CORE','CORN','COST','COZY','CROP','CROW',
+    'CURE','CURL','DARK','DATA','DATE','DAWN','DAYS','DEAD','DEAL','DEAN','DEAR','DEBT',
+    'DECK','DEED','DEEP','DEER','DENY','DESK','DIET','DIRT','DISK','DOES','DONE','DOOR',
+    'DOSE','DOTE','DOVE','DOWN','DRAW','DREW','DROP','DRUM','DUAL','DULL','DUMB','DUMP',
+    'DUNE','DUSK','DUST','EACH','EARN','EASE','EAST','EASY','EDGE','ELSE','EVEN','EVER',
+    'EXAM','FACE','FACT','FAIL','FAIR','FALL','FAME','FARM','FAST','FATE','FEEL','FEET',
+    'FILE','FILL','FILM','FIND','FINE','FIRE','FIRM','FISH','FIST','FLAG','FLAT','FLEW',
+    'FLIP','FLOW','FOAM','FOLD','FOLK','FOND','FONT','FOOD','FOOL','FOOT','FORD','FORE',
+    'FORK','FORM','FORT','FOUL','FOUR','FREE','FROM','FUEL','FULL','FUND','FUSE','GAIN',
+    'GAME','GANG','GAZE','GEAR','GENE','GERM','GIFT','GIVE','GLAD','GLOW','GLUE','GOAL',
+    'GOLD','GOLF','GONE','GOOD','GRAB','GRAY','GREW','GRID','GRIN','GRIP','GRIT','GROW',
+    'GULF','GUST','HAIR','HALF','HALL','HAND','HANG','HARD','HARM','HATE','HAVE','HAWK',
+    'HEAD','HEAL','HEAP','HEAT','HEEL','HELD','HELP','HERE','HERO','HIGH','HILL','HINT',
+    'HIRE','HOLD','HOLE','HOME','HOOK','HOPE','HORN','HOST','HOUR','HUGE','HULL','HUNT',
+    'HURT','IDEA','IDLE','INCH','IRON','ITEM','JOIN','JOKE','JUMP','JUNE','JUST','KEEN',
+    'KEEP','KICK','KILL','KIND','KING','KISS','KNEE','KNIT','KNOB','KNOW','LACE','LACK',
+    'LAID','LAKE','LAMP','LAND','LANE','LAST','LATE','LAWN','LEAD','LEAF','LEAK','LEAN',
+    'LEAP','LEFT','LEND','LENS','LESS','LICK','LIFE','LIFT','LIKE','LIME','LINE','LINK',
+    'LIST','LIVE','LOAD','LOAN','LOCK','LONG','LOOK','LOOP','LORD','LOSE','LOSS','LOST',
+    'LOUD','LOVE','LUCK','MADE','MAIL','MAIN','MAKE','MALE','MALL','MANY','MARK','MARS',
+    'MASK','MASS','MATE','MATH','MAZE','MEAL','MEAN','MEAT','MEET','MELT','MEMO','MENU',
+    'MERE','MESH','MILD','MILE','MILK','MILL','MIND','MINE','MINT','MISS','MOAN','MODE',
+    'MOLD','MOOD','MOON','MORE','MOST','MOVE','MUCH','MUGS','MULE','MUST','MYTH','NAIL',
+    'NAME','NAVY','NEAR','NEAT','NECK','NEED','NEWS','NEXT','NICE','NINE','NODE','NONE',
+    'NORM','NOSE','NOTE','NOUN','NUDE','NUMB','OATH','OBEY','ODDS','OMEN','ONCE','ONLY',
+    'OPEN','ORAL','OVEN','OVER','OWED','PACK','PAGE','PAID','PAIN','PAIR','PALE','PALM',
+    'PARK','PART','PASS','PAST','PATH','PAVE','PEAK','PEEL','PEER','PICK','PILE','PILL',
+    'PINE','PINK','PIPE','PLAN','PLAY','PLEA','PLOT','PLOW','PLUG','PLUS','POEM','POET',
+    'POLE','POLL','POND','POOL','POOR','PORT','POSE','POST','POUR','PREY','PULL','PUMP',
+    'PURE','PUSH','RACE','RACK','RAFT','RAGE','RAID','RAIL','RAIN','RAKE','RAMP','RANG',
+    'RANK','RARE','RATE','RAYS','READ','REAL','REAP','REED','REEL','RELY','RENT','REST',
+    'RICE','RICH','RIDE','RING','RIOT','RISE','RISK','ROAD','ROAM','ROAR','ROBE','ROCK',
+    'ROLE','ROLL','ROME','ROOF','ROOM','ROOT','ROPE','ROSE','RUDE','RUIN','RULE','RUNG',
+    'RUSH','RUST','SAFE','SAGE','SAID','SAIL','SAKE','SALE','SALT','SAME','SAND','SANK',
+    'SAVE','SCAN','SEAL','SEAM','SEAT','SEED','SEEK','SEEM','SEEN','SELF','SELL','SEND',
+    'SENT','SHED','SHIN','SHIP','SHOE','SHOP','SHOT','SHOW','SHUT','SICK','SIDE','SIGH',
+    'SIGN','SILK','SING','SINK','SITE','SIZE','SKIN','SKIP','SLAM','SLAP','SLIM','SLIP',
+    'SLOT','SLOW','SLUG','SNAP','SNOW','SOAK','SOAP','SOAR','SOCK','SOFT','SOIL','SOLD',
+    'SOLE','SOME','SONG','SOON','SORT','SOUL','SOUP','SPAN','SPIN','SPOT','STAR','STAY',
+    'STEM','STEP','STIR','STOP','STRAP','STUB','STUN','SUCH','SUIT','SUNG','SUNK','SURE',
+    'SURF','SWAP','SWIM','TAIL','TALE','TALL','TANK','TAPE','TASK','TAME','TART','TEAM',
+    'TEAR','TELL','TEND','TENT','TERM','TEST','TEXT','THAN','THAT','THEM','THEN','THEY',
+    'THIN','THIS','TIDE','TILL','TIME','TINY','TIRE','TOAD','TOLD','TOLL','TONE','TORE',
+    'TOSS','TOUR','TOWN','TRAP','TREE','TRIM','TRIP','TRUE','TUBE','TUCK','TUNE','TURN',
+    'TWIN','TYPE','UGLY','UNIT','UPON','URGE','USED','USER','VARY','VAST','VEIL','VERY',
+    'VIEW','VINE','VISA','VOID','VOTE','WADE','WAGE','WAKE','WALK','WALL','WAND','WANT',
+    'WARD','WARM','WARN','WARP','WARY','WASH','WAVE','WAYS','WEAK','WEAL','WEAR','WEED',
+    'WEEK','WELL','WENT','WERE','WEST','WHAT','WHEN','WHIP','WHOM','WIDE','WIFE','WILD',
+    'WILL','WIND','WINE','WING','WINK','WIRE','WISE','WISH','WITH','WOKE','WOLF','WOMB',
+    'WOOD','WORD','WORE','WORK','WORM','WOVE','WRAP','WREN','WRIST','YARD','YARN','YEAR',
+    'YELL','YOUR','ZERO','ZONE',
+    // 5-letter common words
+    'ABOUT','ABOVE','ABUSE','AFTER','AGAIN','AISLE','ALERT','ALIKE','ALIVE','ALLEY',
+    'ALLOW','ALONE','ALONG','ANGEL','ANGER','ANGLE','ANGRY','ANIME','ANKLE','ANNOY',
+    'APART','APPLE','APPLY','ARENA','ARGUE','ARISE','ARMOR','ARROW','ASIDE','ASKED',
+    'ASSET','ATLAS','ATTIC','AUDIO','AUDIT','AVOID','AWAKE','AWARD','AWARE','AWFUL',
+    'BASIC','BASIS','BATCH','BEACH','BEARD','BEAST','BEGIN','BEING','BELOW','BENCH',
+    'BLESS','BLIND','BLOCK','BLOOD','BLOOM','BLOWN','BOARD','BONUS','BOOST','BOUND',
+    'BRACE','BRAIN','BRAND','BRAVE','BREAD','BREAK','BREED','BRICK','BRIEF','BRING',
+    'BROAD','BROKE','BROOK','BROWN','BRUSH','BUDDY','BUILD','BUILT','BUNCH','BURST',
+    'BUYER','CABIN','CABLE','CARRY','CATCH','CAUSE','CHAIN','CHAIR','CHARM','CHEAP',
+    'CHEAT','CHECK','CHEEK','CHEER','CHEST','CHIEF','CHILD','CHOIR','CHOSE','CIVIC',
+    'CIVIL','CLAIM','CLASS','CLEAN','CLEAR','CLIMB','CLOCK','CLONE','CLOSE','CLOTH',
+    'CLOUD','COACH','COAST','COULD','COUNT','COURT','COVER','CRAFT','CRANE','CRASH',
+    'CRAZY','CREAM','CREEK','CRIME','CROSS','CROWD','CROWN','CRUEL','CRUSH','CURVE',
+    'CYCLE','DAILY','DANCE','DELAY','DELTA','DENSE','DEPOT','DEPTH','DERBY','DIRTY',
+    'DOING','DOUBT','DOUGH','DRAFT','DRAIN','DRAMA','DRAPE','DREAM','DRIFT','DRILL',
+    'DRINK','DRIVE','DROVE','DROWN','DRYER','DYING','EAGER','EAGLE','EARLY','EARTH',
+    'EIGHT','ELITE','EMAIL','EMPTY','ENEMY','ENJOY','ENTER','ENTRY','EQUAL','ERROR',
+    'ESSAY','EVERY','EXACT','EXIST','EXTRA','FAINT','FAITH','FANCY','FATAL','FEAST',
+    'FENCE','FEVER','FIBER','FIELD','FIFTH','FIFTY','FIGHT','FINAL','FIRST','FIXED',
+    'FLAME','FLASH','FLEET','FLESH','FLOAT','FLOCK','FLOOD','FLOOR','FLOUR','FOCUS',
+    'FORCE','FORGE','FORTY','FORUM','FOUND','FRANC','FRANK','FRAUD','FRESH','FROWN',
+    'FRONT','FROST','FROZE','FRUIT','FUNNY','GIANT','GIVEN','GLASS','GLOBE','GLOOM',
+    'GLOSS','GLOVE','GOING','GRACE','GRADE','GRAIN','GRAND','GRANT','GRAPH','GRASP',
+    'GRASS','GRAVE','GRAZE','GREET','GRIEF','GRIND','GROAN','GROOM','GROUP','GROVE',
+    'GUARD','GUIDE','GUILE','GUILT','GUISE','GUSTO','HAPPY','HARSH','HASTE','HAUNT',
+    'HAVEN','HEART','HEAVY','HENCE','HERBS','HINGE','HOIST','HONOR','HORSE','HOTEL',
+    'HOUSE','HUMAN','HUMID','HURRY','IMAGE','IMPLY','INBOX','INDEX','INNER','INPUT',
+    'INTER','INTRO','ISSUE','JEWEL','JOKER','JUDGE','JUICE','JUICY','KNIFE','KNOCK',
+    'KNOWN','LABEL','LABOR','LANCE','LARGE','LASER','LATER','LAUGH','LAYER','LEARN',
+    'LEASE','LEAST','LEAVE','LEGAL','LEMON','LEVEL','LIGHT','LIMIT','LINER','LOCAL',
+    'LODGE','LOGIC','LOOSE','LOWER','LUCKY','LUNCH','LYING','MAGIC','MAJOR','MANOR',
+    'MAPLE','MARCH','MASON','MATCH','MAYOR','MEDIA','MERCY','METAL','METER','MIGHT',
+    'MINOR','MINUS','MIXED','MODEL','MONEY','MONTH','MORAL','MOTOR','MOUNT','MOUSE',
+    'MOUTH','MOVIE','MURAL','MUSIC','NAIVE','NERVE','NEVER','NIGHT','NOBLE','NOISE',
+    'NORTH','NOTED','NURSE','NYLON','OCCUR','OFFER','OFTEN','ORDER','OTHER','OUGHT',
+    'OUTER','OWNER','OZONE','PAINT','PANEL','PAPER','PARTY','PATCH','PAUSE','PEACE',
+    'PEARL','PEDAL','PENNY','PHASE','PHONE','PHOTO','PIANO','PIECE','PILOT','PITCH',
+    'PIXEL','PIZZA','PLACE','PLAIN','PLANE','PLANT','PLATE','PLAZA','PLEAD','PLUME',
+    'POINT','POLAR','POUND','POWER','PRESS','PRICE','PRIDE','PRIME','PRINT','PRIZE',
+    'PROBE','PRONE','PROOF','PROSE','PROUD','PROVE','PSALM','QUEEN','QUERY','QUEUE',
+    'QUICK','QUIET','QUITE','QUOTE','RADAR','RADIO','RAISE','RALLY','RANCH','RANGE',
+    'RAPID','REACH','REALM','REBEL','REFER','REIGN','RELAX','REPLY','RIDER','RIGHT',
+    'RISKY','RIVAL','RIVER','ROBIN','ROBOT','ROCKY','ROUGE','ROUGH','ROUND','ROUTE',
+    'ROVER','ROYAL','RULER','RURAL','SADLY','SAINT','SALAD','SAUCE','SCALE','SCENE',
+    'SCOPE','SCORE','SENSE','SERVE','SETUP','SEVEN','SHAKE','SHALL','SHAME','SHAPE',
+    'SHARE','SHARP','SHEEP','SHEER','SHEET','SHELF','SHELL','SHIFT','SHINE','SHIRT',
+    'SHORE','SHORT','SHOUT','SIGHT','SINCE','SIXTH','SIXTY','SKILL','SKULL','SLACK',
+    'SLAIN','SLASH','SLAVE','SLEEP','SLICE','SLIDE','SLOPE','SMART','SMELL','SMILE',
+    'SMOKE','SNAKE','SOLVE','SORRY','SOUND','SOUTH','SPACE','SPARE','SPARK','SPAWN',
+    'SPEAK','SPEED','SPEND','SPENT','SPICE','SPINE','SPITE','SPLIT','SPOKE','SPOON',
+    'SPORT','SPRAY','SQUAD','STACK','STAFF','STAGE','STAIN','STAIR','STAKE','STALE',
+    'STALL','STAMP','STAND','STARK','START','STATE','STAVE','STEAD','STEAM','STEEL',
+    'STEEP','STICK','STIFF','STILL','STOCK','STONE','STOOD','STORE','STORM','STORY',
+    'STOVE','STRAP','STRAW','STRAY','STRIP','STUCK','STUDY','STYLE','SUGAR','SUITE',
+    'SUNNY','SUPER','SURGE','SWAMP','SWEAR','SWEAT','SWEEP','SWEET','SWEPT','SWIFT',
+    'SWIRL','SWORD','SWORE','TABLE','TASTE','TEACH','TEETH','THANK','THEIR','THEME',
+    'THERE','THESE','THICK','THING','THINK','THIRD','THOSE','THREE','THROW','TIGER',
+    'TIGHT','TIMER','TIRED','TITLE','TODAY','TOKEN','TOPIC','TOTAL','TOUCH','TOUGH',
+    'TOWEL','TOWER','TOXIC','TRACK','TRADE','TRAIL','TRAIN','TRAIT','TRASH','TREAT',
+    'TREND','TRIAL','TRIBE','TRICK','TRIED','TROLL','TROOP','TROUT','TRUST','TRUTH',
+    'TULIP','TUMOR','TUNER','TUPLE','TWICE','TWIST','UNDER','UNION','UNTIL','UPPER',
+    'UPSET','URBAN','USAGE','USUAL','UTTER','VALID','VALUE','VALVE','VIDEO','VIGOR',
+    'VIRAL','VISIT','VITAL','VOCAL','VOICE','VOMIT','VOTER','VAGUE','VERSE','WASTE',
+    'WATCH','WATER','WEARY','WEIGH','WEIRD','WHALE','WHERE','WHICH','WHILE','WHITE',
+    'WHOLE','WHOSE','WIDOW','WIELD','WITCH','WORLD','WORRY','WORSE','WORST','WORTH',
+    'WOULD','WOUND','WRATH','WRITE','WROTE','YACHT','YIELD','YOUNG','YOUTH','ZEBRA',
+  ]);
+  for (const w of [...WORD_SET]) {
+    if (!w.endsWith('S')) WORD_SET.add(w + 'S');
   }
 }
 
 // ── Game State ────────────────────────────────────────────────────
-let grid = [];          // 16 letters
+let grid = [];
 let gems = 10;
 let round = 1;
 let timerInterval = null;
@@ -849,12 +995,19 @@ let selectedCells = [];
 let roundActive = false;
 
 // ── Helpers ───────────────────────────────────────────────────────
-function randomLetter() {
-  return LETTER_POOL[Math.floor(Math.random() * LETTER_POOL.length)];
+function wordScore(word) {
+  // word is the spelled-out string e.g. "QUICK" — score each char using LETTER_VALUES
+  return word.split('').reduce((s, c) => s + (LETTER_VALUES[c] || 0), 0);
 }
 
-function wordScore(word) {
-  return word.split('').reduce((s, c) => s + (LETTER_VALUES[c] || 0), 0);
+// Score a path of tile indices — handles QU tile (counts Q+U value, spells QU = 2 letters)
+function pathScore(cells) {
+  return cells.reduce((s, i) => s + tileScore(grid[i]), 0);
+}
+
+// Build the word string from a path — QU tile contributes "QU"
+function pathToWord(cells) {
+  return cells.map(i => grid[i]).join('');
 }
 
 function isAdjacent(a, b) {
@@ -869,24 +1022,23 @@ function generateGrid() {
   renderGrid();
 }
 
-// Cache tile center positions (relative to grid wrapper) for hit-testing
-let tileCenters = []; // [{x, y}] for each of 16 cells
+let tileCenters = [];
 
 function renderGrid() {
   const g = document.getElementById('grid');
   g.innerHTML = '';
-  grid.forEach((letter, i) => {
-    const tile = document.createElement('div');
-    tile.className = 'tile';
-    tile.dataset.index = i;
-    tile.innerHTML = `
-      <span class="tile-letter">${letter}</span>
-      <span class="tile-pts">${LETTER_VALUES[letter]}</span>
+  grid.forEach((tile, i) => {
+    const el = document.createElement('div');
+    el.className = 'tile';
+    el.dataset.index = i;
+    const isQu = tile === 'QU';
+    el.innerHTML = `
+      <span class="tile-letter${isQu ? ' qu' : ''}">${tile}</span>
+      <span class="tile-pts">${tileScore(tile)}</span>
     `;
-    g.appendChild(tile);
+    g.appendChild(el);
   });
 
-  // After DOM paint, measure centers
   requestAnimationFrame(() => {
     measureTileCenters();
     setupDragListeners();
@@ -905,20 +1057,18 @@ function measureTileCenters() {
       y: r.top - wRect.top + r.height / 2
     });
   }
-  // Update SVG size to match wrapper
   const svg = document.getElementById('pathSvg');
   svg.setAttribute('viewBox', `0 0 ${wRect.width} ${wRect.height}`);
 }
 
+let listenersAttached = false;
 function setupDragListeners() {
+  if (listenersAttached) return;
+  listenersAttached = true;
   const wrapper = document.getElementById('gridWrapper');
-
-  // Mouse
   wrapper.addEventListener('mousedown', onDragStart);
   document.addEventListener('mousemove', onDragMove);
   document.addEventListener('mouseup', onDragEnd);
-
-  // Touch
   wrapper.addEventListener('touchstart', onDragStart, {passive: false});
   document.addEventListener('touchmove', onDragMove, {passive: false});
   document.addEventListener('touchend', onDragEnd);
@@ -931,8 +1081,7 @@ function getPointerPosRelative(e) {
   return { x: src.clientX - r.left, y: src.clientY - r.top };
 }
 
-// Returns index of tile whose center is within SNAP_RADIUS of pointer, or -1
-const SNAP_RADIUS = 38; // px — tight enough to avoid accidentals
+const SNAP_RADIUS = 38;
 
 function nearestTileInRadius(px, py) {
   let best = -1, bestDist = SNAP_RADIUS;
@@ -960,7 +1109,6 @@ function onDragMove(e) {
 
   const {x, y} = getPointerPosRelative(e);
 
-  // Update live rubber-band line from last selected tile to cursor
   const liveLine = document.getElementById('liveLine');
   if (selectedCells.length > 0) {
     const last = tileCenters[selectedCells[selectedCells.length - 1]];
@@ -974,7 +1122,6 @@ function onDragMove(e) {
   const idx = nearestTileInRadius(x, y);
   if (idx === -1) return;
 
-  // Allow backing up: if pointer returns to previous tile, undo last step
   if (selectedCells.length >= 2 && idx === selectedCells[selectedCells.length - 2]) {
     const removed = selectedCells.pop();
     const t = document.querySelector(`.tile[data-index="${removed}"]`);
@@ -1005,7 +1152,6 @@ function getTileEl(i) {
   return document.querySelector(`.tile[data-index="${i}"]`);
 }
 
-// ── SVG Path Drawing ──────────────────────────────────────────────
 function updatePathSvg() {
   if (selectedCells.length < 1) { clearPathSvg(); return; }
   const pts = selectedCells.map(i => `${tileCenters[i].x},${tileCenters[i].y}`).join(' ');
@@ -1018,7 +1164,6 @@ function clearPathSvg() {
   if (ll) ll.style.display = 'none';
 }
 
-// ── Drag Interaction ──────────────────────────────────────────────
 function addCell(idx) {
   selectedCells.push(idx);
   const tile = getTileEl(idx);
@@ -1046,14 +1191,15 @@ function clearSelection() {
 }
 
 function updateCurrentWord() {
-  const word = selectedCells.map(i => grid[i]).join('');
-  const pts = wordScore(word);
-  document.getElementById('currentWordText').textContent = word || 'drag letters to form a word';
+  const word = pathToWord(selectedCells);
+  const pts = pathScore(selectedCells);
+  document.getElementById('currentWordText').textContent = word || '\u00a0';
   document.getElementById('currentWordPts').textContent = word ? `${pts} pts` : '';
 }
 
 function submitWord() {
-  const word = selectedCells.map(i => grid[i]).join('');
+  const word = pathToWord(selectedCells);
+  // For dictionary lookup: QU tile → treat as "QU" already in the word string
   if (word.length < 4) {
     clearSelection();
     setStatus('Words must be at least 4 letters', 'bad');
@@ -1064,7 +1210,7 @@ function submitWord() {
     setStatus(`"${word}" is not a valid word`, 'bad');
     return;
   }
-  const pts = wordScore(word);
+  const pts = pathScore(selectedCells);
   setStatus(`"${word}" — ${pts} pts ✓`, 'good');
   if (pts > bestPoints) {
     bestPoints = pts;
@@ -1090,6 +1236,7 @@ function startTimer() {
     updateTimerDisplay();
     if (timeLeft <= 0) {
       clearInterval(timerInterval);
+      timerInterval = null;
       endRound();
     }
   }, 1000);
@@ -1106,13 +1253,12 @@ function updateTimerDisplay() {
 // ── Word Finder ───────────────────────────────────────────────────
 function findAllWords() {
   const results = [];
-  // BFS/DFS through all paths on 4x4 grid
   function dfs(path, visited) {
     if (path.length >= 4) {
-      const word = path.map(i => grid[i]).join('');
+      const word = pathToWord(path);
       if (WORD_SET.has(word)) results.push(word);
     }
-    if (path.length >= 8) return; // cap depth for performance
+    if (path.length >= 8) return;
     const last = path[path.length - 1];
     for (let n = 0; n < 16; n++) {
       if (!visited[n] && isAdjacent(last, n)) {
@@ -1132,6 +1278,11 @@ function findAllWords() {
   return [...new Set(results)];
 }
 
+// Score a word string (not a path) — used in findAllWords results
+function scoreWordStr(word) {
+  return word.split('').reduce((s, c) => s + (LETTER_VALUES[c] || 0), 0);
+}
+
 // ── Round Flow ────────────────────────────────────────────────────
 function startRound() {
   document.getElementById('resultOverlay').classList.add('hidden');
@@ -1141,9 +1292,8 @@ function startRound() {
   selectedCells = [];
   document.getElementById('bestWordText').textContent = '— — — —';
   document.getElementById('bestWordPts').textContent = 'find a word to start';
-  document.getElementById('currentWordText').textContent = 'drag letters to form a word';
+  document.getElementById('currentWordText').textContent = '\u00a0';
   document.getElementById('currentWordPts').textContent = '';
-  document.getElementById('roundDisplay').textContent = round;
   updateGemsDisplay();
   setStatus('Click and drag letters — minimum 4 letters');
   clearPathSvg();
@@ -1157,26 +1307,20 @@ function endRound() {
   dragging = false;
   clearSelection();
 
-  // Find all valid words
   const allWords = findAllWords();
-  const wordScores = allWords.map(w => wordScore(w)).sort((a,b) => a-b);
+  const wordScores = allWords.map(w => scoreWordStr(w)).sort((a,b) => a-b);
+  const total = wordScores.length;
 
-  // Show bet overlay
-  const overlay = document.getElementById('betOverlay');
   document.getElementById('betTitle').textContent = '⏰ Time\'s Up!';
   document.getElementById('betWordShow').textContent =
     bestWord ? `${bestWord} (${bestPoints} pts)` : 'No valid word found';
-
-  const total = wordScores.length;
   document.getElementById('betDesc').textContent =
-    `${total} valid word${total !== 1 ? 's' : ''} found on this grid. ` +
-    `Can you beat 80% of them?`;
+    `${total} valid word${total !== 1 ? 's' : ''} found on this grid. Can you beat 80% of them?`;
 
-  overlay.classList.remove('hidden');
+  document.getElementById('betOverlay').classList.remove('hidden');
 }
 
 let currentBetAmount = 0;
-let lastAllWords = [];
 
 function placeBet(amount) {
   if (gems < amount) {
@@ -1186,10 +1330,8 @@ function placeBet(amount) {
   currentBetAmount = amount;
   document.getElementById('betOverlay').classList.add('hidden');
 
-  // Recalculate
   const allWords = findAllWords();
-  lastAllWords = allWords;
-  const wordScores = allWords.map(w => wordScore(w)).sort((a,b) => a-b);
+  const wordScores = allWords.map(w => scoreWordStr(w)).sort((a,b) => a-b);
   const total = wordScores.length;
 
   let percentile = 0;
@@ -1199,42 +1341,45 @@ function placeBet(amount) {
   }
 
   const won = percentile >= 80;
-
-  if (won) {
-    gems += amount;
-  } else {
-    gems -= amount;
-  }
+  if (won) gems += amount;
+  else gems -= amount;
 
   updateGemsDisplay();
 
-  // Show result
   document.getElementById('resultIcon').textContent = won ? '🎉' : '💸';
   document.getElementById('resultTitle').textContent = won ? 'Correct!' : 'Wrong Bet';
   document.getElementById('resultDesc').innerHTML = won
     ? `Your word <strong style="color:var(--gold)">${bestWord || '—'}</strong> (${bestPoints} pts) beats <strong>${percentile.toFixed(0)}%</strong> of all words. You win <strong style="color:var(--gem-bright)">${amount} 💎</strong>!`
     : `Your word <strong style="color:var(--gold)">${bestWord || '—'}</strong> (${bestPoints} pts) only beats <strong>${percentile.toFixed(0)}%</strong> of all words (needed 80%). You lose <strong style="color:var(--accent)">${amount} 💎</strong>.`;
 
-  // Top words list
-  const sortedByScore = [...allWords].sort((a,b) => wordScore(b) - wordScore(a));
+  // Build word list with player's best word highlighted
+  const sortedByScore = [...allWords].sort((a,b) => scoreWordStr(b) - scoreWordStr(a));
   const listEl = document.getElementById('allWordsList');
-  listEl.innerHTML = `<strong style="color:var(--text)">All valid words (${allWords.length}):</strong><br>` +
-    sortedByScore.slice(0, 60).map(w => `${w} (${wordScore(w)})`).join(' · ') +
-    (sortedByScore.length > 60 ? ' · ...' : '');
+  const items = sortedByScore.slice(0, 60).map(w => {
+    const pts = scoreWordStr(w);
+    const isPlayerWord = w === bestWord;
+    if (isPlayerWord) {
+      return `<span class="player-word">★ ${w} (${pts})</span>`;
+    }
+    return `${w} (${pts})`;
+  });
+  listEl.innerHTML = `<strong style="color:var(--text)">All valid words (${allWords.length}):</strong><br>`
+    + items.join(' · ')
+    + (sortedByScore.length > 60 ? ' · ...' : '');
 
-  // Gem bar
+  // Scroll to player's word if it exists
+  if (bestWord) {
+    requestAnimationFrame(() => {
+      const span = listEl.querySelector('.player-word');
+      if (span) span.scrollIntoView({ block: 'nearest' });
+    });
+  }
+
   renderGemBar();
   document.getElementById('gemTotal').textContent = `💎 ${gems} gemstone${gems !== 1 ? 's' : ''} remaining`;
 
-  // Check win/lose
-  if (gems <= 0) {
-    showGameOver(false);
-    return;
-  }
-  if (gems >= 20) {
-    showGameOver(true);
-    return;
-  }
+  if (gems <= 0) { showGameOver(false); return; }
+  if (gems >= 20) { showGameOver(true); return; }
 
   round++;
   document.getElementById('nextRoundBtn').textContent = `Round ${round} ▶`;
@@ -1280,15 +1425,12 @@ const HTP_DEMO_LETTERS = [
   {l:'W',p:4}, {l:'L',p:1}, {l:'D',p:2}, {l:'I',p:1},
   {l:'B',p:3}, {l:'Y',p:4}, {l:'M',p:3}, {l:'G',p:2}
 ];
-// Path spells W(8) → O(5 → above-left... let's pick: W=8, O=4(row1col1), R=0(row0col0)... 
-// Actually map: indices for "WORD": W=8, O=5, R=2, D=10
-const HTP_PATH = [8, 5, 2, 1]; // W-O-R-D, adjacent diagonals ✓
+const HTP_PATH = [8, 5, 2, 1]; // W → A → R → T = WART
 
 function buildHtpDemo() {
   const container = document.getElementById('htpDemoGrid');
   if (!container) return;
 
-  // Render tiles
   HTP_DEMO_LETTERS.forEach(({l, p}, i) => {
     const tile = document.createElement('div');
     tile.className = 'htp-tile' + (HTP_PATH.includes(i) ? ' hl' : '');
@@ -1301,16 +1443,12 @@ function buildHtpDemo() {
     container.appendChild(tile);
   });
 
-  // Draw SVG path after paint
   requestAnimationFrame(() => {
     const cRect = container.getBoundingClientRect();
     const centers = [];
     container.querySelectorAll('.htp-tile').forEach(t => {
       const r = t.getBoundingClientRect();
-      centers.push({
-        x: r.left - cRect.left + r.width / 2,
-        y: r.top - cRect.top + r.height / 2
-      });
+      centers.push({ x: r.left - cRect.left + r.width / 2, y: r.top - cRect.top + r.height / 2 });
     });
 
     const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
@@ -1327,7 +1465,6 @@ function buildHtpDemo() {
     poly.setAttribute('filter', 'drop-shadow(0 0 5px rgba(160,126,245,0.6))');
     svg.appendChild(poly);
 
-    // Dots on each path center
     HTP_PATH.forEach(i => {
       const c = centers[i];
       const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
@@ -1361,16 +1498,11 @@ window.addEventListener('resize', () => {
 });
 
 (async () => {
-  // Build the demo grid in the how-to-play screen
   buildHtpDemo();
-
-  // Load dictionary in background while user reads HTP
   setStatus('Loading dictionary…');
   await loadDictionary();
   setStatus('Dictionary ready — press Play to start!');
 })();
-
-
 </script>
 </body>
 </html>
