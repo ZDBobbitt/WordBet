@@ -168,6 +168,22 @@
     color: var(--muted);
   }
 
+  @keyframes flashGreen {
+    0%   { background: rgba(76,175,125,0.35); border-color: var(--green); }
+    100% { background: rgba(123,82,212,0.1);  border-color: rgba(123,82,212,0.3); }
+  }
+  @keyframes flashYellow {
+    0%   { background: rgba(201,168,76,0.35); border-color: var(--gold); }
+    100% { background: rgba(123,82,212,0.1);  border-color: rgba(123,82,212,0.3); }
+  }
+  @keyframes flashRed {
+    0%   { background: rgba(224,92,92,0.35);  border-color: var(--accent); }
+    100% { background: rgba(123,82,212,0.1);  border-color: rgba(123,82,212,0.3); }
+  }
+  .current-word-box.flash-green  { animation: flashGreen  1.5s ease-out forwards; }
+  .current-word-box.flash-yellow { animation: flashYellow 1.5s ease-out forwards; }
+  .current-word-box.flash-red    { animation: flashRed    1.5s ease-out forwards; }
+
   .grid-wrapper {
     position: relative;
     user-select: none;
@@ -259,8 +275,8 @@
   .tile.selected .tile-letter { color: #fff; }
 
   .tile-pts {
-    font-size: 0.6rem;
-    color: var(--muted);
+    font-size: 0.8rem;
+    color: #FFEC96;
     position: absolute;
     bottom: 6px;
     right: 8px;
@@ -800,7 +816,7 @@
 // ── Scrabble values ──────────────────────────────────────────────
 const LETTER_VALUES = {
   A:1,B:3,C:3,D:2,E:1,F:4,G:2,H:4,I:1,J:8,K:5,L:1,M:3,
-  N:1,O:1,P:3,Q:10,R:1,S:1,T:1,U:1,V:4,W:4,X:8,Y:4,Z:10
+  N:1,O:1,P:3,Q:6,R:1,S:1,T:1,U:1,V:4,W:4,X:8,Y:4,Z:10
 };
 
 // Weighted distribution similar to Scrabble bag — Q excluded from pool, handled separately
@@ -1198,26 +1214,38 @@ function updateCurrentWord() {
   document.getElementById('currentWordPts').textContent = word ? `${pts} pts` : '';
 }
 
+function flashWordBox(cls) {
+  const box = document.querySelector('.current-word-box');
+  box.classList.remove('flash-green', 'flash-yellow', 'flash-red');
+  // Force reflow so re-adding the same class restarts the animation
+  void box.offsetWidth;
+  box.classList.add(cls);
+}
+
 function submitWord() {
   const word = pathToWord(selectedCells);
-  // For dictionary lookup: QU tile → treat as "QU" already in the word string
   if (word.length < 4) {
     clearSelection();
     setStatus('Words must be at least 4 letters', 'bad');
     return;
   }
   if (!WORD_SET.has(word)) {
+    flashWordBox('flash-red');
     clearSelection();
     setStatus(`"${word}" is not a valid word`, 'bad');
     return;
   }
   const pts = pathScore(selectedCells);
-  setStatus(`"${word}" — ${pts} pts ✓`, 'good');
   if (pts > bestPoints) {
     bestPoints = pts;
     bestWord = word;
     document.getElementById('bestWordText').textContent = word;
     document.getElementById('bestWordPts').textContent = `${pts} points`;
+    flashWordBox('flash-green');
+    setStatus(`"${word}" — ${pts} pts ✓ new best!`, 'good');
+  } else {
+    flashWordBox('flash-yellow');
+    setStatus(`"${word}" — ${pts} pts ✓`, 'good');
   }
   clearSelection();
 }
