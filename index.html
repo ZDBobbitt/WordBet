@@ -780,7 +780,7 @@
       <div class="htp-section">
         <div class="htp-section-title">The Bet</div>
         <p class="htp-text">You have <strong>60 seconds</strong> to find the highest-scoring word you can. When time is up, the game secretly finds <em>every</em> valid word on the grid.</p>
-        <p class="htp-text" style="margin-top:8px">Then you're asked: <strong>does your best word beat 80% of all possible words?</strong> Bet between 1 and 3 gemstones based on your confidence.</p>
+        <p class="htp-text" style="margin-top:8px">Then you're asked: <strong>does your best word beat 90% of all possible words?</strong> Bet between 1 and 3 gemstones based on your confidence.</p>
         <p class="htp-text" style="margin-top:8px">If you bet incorrectly, you lose that number of gemstones. If you bet correctly, you win that number of gemstones.</p>
       </div>
 
@@ -803,7 +803,7 @@
     <div class="bet-label">Your best word:</div>
     <div class="highlight" id="betWordShow">—</div>
     <br>
-    <p>Do you think your best word scores <strong style="color:var(--gold)">better than 80%</strong> of all valid words on this grid?</p>
+    <p>Do you think your best word scores <strong style="color:var(--gold)">better than 90%</strong> of all valid words on this grid?</p>
     <p style="color:var(--muted);font-size:0.7rem;">Bet 1–3 💎 based on your confidence. Win = gain gems. Lose = lose gems.</p>
     <div class="bet-label" style="margin-top:10px">Choose your bet:</div>
     <div class="bet-btns">
@@ -1375,7 +1375,7 @@ function endRound() {
   document.getElementById('betWordShow').textContent =
     bestWord ? `${bestWord} (${bestPoints} pts)` : 'No valid word found';
   document.getElementById('betDesc').textContent =
-    `${total} valid word${total !== 1 ? 's' : ''} found on this grid. Can you beat 80% of them?`;
+    `${total} valid word${total !== 1 ? 's' : ''} found on this grid. Can you beat 90% of them?`;
 
   document.getElementById('betOverlay').classList.remove('hidden');
 }
@@ -1400,7 +1400,7 @@ function placeBet(amount) {
     percentile = (below / total) * 100;
   }
 
-  const won = percentile >= 80;
+  const won = percentile >= 90;
   if (won) gems += amount;
   else gems -= amount;
 
@@ -1408,7 +1408,7 @@ function placeBet(amount) {
   document.getElementById('resultTitle').textContent = won ? 'Correct!' : 'Wrong Bet';
   document.getElementById('resultDesc').innerHTML = won
     ? `Your word <strong style="color:var(--gold)">${bestWord || '—'}</strong> (${bestPoints} pts) beats <strong>${percentile.toFixed(0)}%</strong> of all words. You win <strong style="color:var(--gem-bright)">${amount} 💎</strong>!`
-    : `Your word <strong style="color:var(--gold)">${bestWord || '—'}</strong> (${bestPoints} pts) only beats <strong>${percentile.toFixed(0)}%</strong> of all words (needed 80%). You lose <strong style="color:var(--accent)">${amount} 💎</strong>.`;
+    : `Your word <strong style="color:var(--gold)">${bestWord || '—'}</strong> (${bestPoints} pts) only beats <strong>${percentile.toFixed(0)}%</strong> of all words (needed 90%). You lose <strong style="color:var(--accent)">${amount} 💎</strong>.`;
 
   // Build word list with player's best word highlighted
   const sortedByScore = [...allWords].sort((a,b) => scoreWordStr(b) - scoreWordStr(a));
