@@ -734,7 +734,7 @@
 
 <div class="best-word-box">
   <div class="best-word-label">Best Word Found</div>
-  <div class="best-word-text" id="bestWordText">— — — —</div>
+  <div class="best-word-text" id="bestWordText"> </div>
   <div class="best-word-pts" id="bestWordPts">find a word to start</div>
 </div>
 
@@ -1351,7 +1351,7 @@ function startRound() {
   bestWord = '';
   bestPoints = 0;
   selectedCells = [];
-  document.getElementById('bestWordText').textContent = '— — — —';
+  document.getElementById('bestWordText').textContent = '';
   document.getElementById('bestWordPts').textContent = 'find a word to start';
   document.getElementById('currentWordText').textContent = '\u00a0';
   document.getElementById('currentWordPts').textContent = '';
