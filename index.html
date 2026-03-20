@@ -117,6 +117,22 @@
   .timer-val { color: var(--gold); }
   .timer-val.urgent { color: var(--accent); animation: pulse 0.6s ease-in-out infinite; }
 
+  .done-btn {
+    background: transparent;
+    border: 1.5px solid var(--green);
+    color: var(--green);
+    border-radius: 7px;
+    padding: 7px 18px;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    transition: background 0.15s, color 0.15s, transform 0.1s, box-shadow 0.15s;
+    width: 100%;
+  }
+
   @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.5; } }
 
   .best-word-box {
@@ -700,10 +716,10 @@
 
 <div class="hud">
   <div class="hud-box">
-    <span class="gems-icon">💎</span>
     <div>
-      <span class="hud-label">Gemstones</span>
-      <span class="hud-value gems-val" id="gemsDisplay">10</span>
+      <button class="done-btn" id="doneBtn" onclick="triggerDoneEarly()">
+      ✓ Done
+    </button>
     </div>
   </div>
   <div class="hud-box">
@@ -1265,6 +1281,13 @@ function setStatus(msg, cls = '') {
   el.className = 'status-msg ' + cls;
 }
 
+function triggerDoneEarly() {
+  if (!roundActive || !bestWord) return;
+  clearInterval(timerInterval);
+  timerInterval = null;
+  endRound();
+}
+
 // ── Timer ─────────────────────────────────────────────────────────
 function startTimer() {
   timeLeft = 60;
@@ -1332,7 +1355,6 @@ function startRound() {
   document.getElementById('bestWordPts').textContent = 'find a word to start';
   document.getElementById('currentWordText').textContent = '\u00a0';
   document.getElementById('currentWordPts').textContent = '';
-  updateGemsDisplay();
   setStatus('Click and drag letters — minimum 4 letters');
   clearPathSvg();
   generateGrid();
@@ -1382,8 +1404,6 @@ function placeBet(amount) {
   if (won) gems += amount;
   else gems -= amount;
 
-  updateGemsDisplay();
-
   document.getElementById('resultIcon').textContent = won ? '🎉' : '💸';
   document.getElementById('resultTitle').textContent = won ? 'Correct!' : 'Wrong Bet';
   document.getElementById('resultDesc').innerHTML = won
@@ -1432,10 +1452,6 @@ function renderGemBar() {
     dot.className = 'gem-dot' + (i >= gems ? ' lost' : '');
     bar.appendChild(dot);
   }
-}
-
-function updateGemsDisplay() {
-  document.getElementById('gemsDisplay').textContent = gems;
 }
 
 function showGameOver(won) {
